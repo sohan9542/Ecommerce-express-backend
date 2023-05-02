@@ -36,6 +36,10 @@ app.use("/api/v1", user);
 app.use("/api/v1", order);
 app.use("/api/v1", payment);
 
+app.get('/', (req, res) => {
+  res.send("We are on home today")
+})
+
 
 
 // Middleware for Errors
