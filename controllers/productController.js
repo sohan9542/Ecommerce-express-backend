@@ -46,25 +46,41 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   let category;
   let smell;
 
- 
+ let url = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize + 8}`
+ let url2 = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize - 8}`
 
   const resultPerPage = 8;
   const productsCount = await Product.countDocuments();
  
   let products;
   
-  if(req.query.new){
-   products =  await Product.find().sort({ createdAt: -1 });
+  if(req.query.new ){
+    url = url + '&new=true'
+    url2 = url2 + '&new=true'
+    products =  await Product.find().sort({ createdAt: -1 });
    }
    else{
     products = await Product.find();
    }
-
+   if(req.query.perfume){
+    url = url + '&perfume=true'
+    url2 = url2 + '&perfume=true'
+    products = products.filter(item=> item.productType === 'perfume')
+  }
+  if(req.query.bakhoor){
+    url = url + '&bakhoor=true'
+    url2 = url2 + '&bakhoor=true'
+    products = products.filter(item=> item.productType === 'bakhoor')
+  }
   if(req.query.category){
+    url = url + `&category=${req.query.category}`
+    url2 = url2 + `&category=${req.query.category}`
     category = req.query.category
     products = products.filter(item=> item.category === category)
   }
   if(req.query.smell){
+    url = url + `&smell=${req.query.smell}`
+    url2 = url2 + `&smell=${req.query.smell}`
     smell = req.query.smell
     products = products.filter(item=> item.smell === smell)
   }
@@ -77,8 +93,8 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
     products,
     productsCount,
     resultPerPage,
-    nextPageUrl: products.length > 7 ? `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize + 8}` : null,
-    prevPageUrl: currentPageSize !== 0 ? `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize - 8}` : null
+    nextPageUrl: products.length > 7 ? url : null,
+    prevPageUrl: currentPageSize !== 0 ? url2 : null
 
   });
 });
@@ -181,3 +197,95 @@ exports.deleteProduct = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+// Create New Review or Update the review
+exports.createProductReview = catchAsyncErrors(async (req, res, next) => {
+  const { rating, comment, productId, name, email } = req.body;
+
+  const review = {
+    name: name,
+    email: email,
+    rating: Number(rating),
+    comment,
+  };
+
+  const product = await Product.findById(productId);
+
+
+  product.reviews.push(review);
+  product.numOfReviews = product.reviews.length;
+
+  let avg = 0;
+
+  product.reviews.forEach((rev) => {
+    avg += rev.rating;
+  });
+
+  product.ratings = avg / product.reviews.length;
+
+  await product.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+  });
+});
+
+// Get All Reviews of a product
+exports.getProductReviews = catchAsyncErrors(async (req, res, next) => {
+  const product = await Product.findById(req.query.id);
+
+  if (!product) {
+    return next(new ErrorHander("Product not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    reviews: product.reviews,
+  });
+});
+
+// Delete Review
+exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
+  const product = await Product.findById(req.query.productId);
+
+  if (!product) {
+    return next(new ErrorHander("Product not found", 404));
+  }
+
+  const reviews = product.reviews.filter(
+    (rev) => rev._id.toString() !== req.query.id.toString()
+  );
+
+  let avg = 0;
+
+  reviews.forEach((rev) => {
+    avg += rev.rating;
+  });
+
+  let ratings = 0;
+
+  if (reviews.length === 0) {
+    ratings = 0;
+  } else {
+    ratings = avg / reviews.length;
+  }
+
+  const numOfReviews = reviews.length;
+
+  await Product.findByIdAndUpdate(
+    req.query.productId,
+    {
+      reviews,
+      ratings,
+      numOfReviews,
+    },
+    {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+  });
+});

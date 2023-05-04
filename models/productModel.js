@@ -31,9 +31,12 @@ const productSchema = mongoose.Schema({
       },
     },
   ],
+  productType: {
+    type: String,
+    required: [true, "Please Enter Product Type"],
+  },
   category: {
     type: String,
-    required: [true, "Please Enter Product Category"],
   },
   smell: {
     type: String,
@@ -51,12 +54,11 @@ const productSchema = mongoose.Schema({
   },
   reviews: [
     {
-      user: {
-        type: mongoose.Schema.ObjectId,
-        ref: "User",
+      name: {
+        type: String,
         required: true,
       },
-      name: {
+      email: {
         type: String,
         required: true,
       },
@@ -67,6 +69,10 @@ const productSchema = mongoose.Schema({
       comment: {
         type: String,
         required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
       },
     },
   ],
