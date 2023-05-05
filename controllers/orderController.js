@@ -68,14 +68,16 @@ exports.getAllOrders = catchAsyncErrors(async (req, res, next) => {
   const orders = await Order.find();
 
   let totalAmount = 0;
-
+let totalItems = 0
   orders.forEach((order) => {
     totalAmount += order.totalPrice;
+    totalItems += order.orderItems.length
   });
 
   res.status(200).json({
     success: true,
     totalAmount,
+    totalItems,
     orders,
   });
 });

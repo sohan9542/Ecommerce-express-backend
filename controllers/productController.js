@@ -46,48 +46,61 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   let category;
   let smell;
 
- let url = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize + 8}`
- let url2 = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize - 8}`
+  let url = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize + 8}`
+  let url2 = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize - 8}`
 
   const resultPerPage = 8;
   const productsCount = await Product.countDocuments();
- 
+
   let products;
-  
-  if(req.query.new ){
+
+  if (req.query.new) {
     url = url + '&new=true'
     url2 = url2 + '&new=true'
-    products =  await Product.find().sort({ createdAt: -1 });
-   }
-   else{
+    products = await Product.find().sort({
+      createdAt: -1
+    });
+  } else {
     products = await Product.find();
-   }
-   if(req.query.perfume){
+  }
+
+  if(req.query.high){
+    url = url + '&high=true'
+    url2 = url2 + '&high=true'
+    products = await Product.find().sort('-price');
+  }
+  if(req.query.low){
+    url = url + '&low=true'
+    url2 = url2 + '&low=true'
+    products = await Product.find().sort('price');
+  }
+
+  if (req.query.perfume) {
     url = url + '&perfume=true'
     url2 = url2 + '&perfume=true'
-    products = products.filter(item=> item.productType === 'perfume')
+    products = products.filter(item => item.productType === 'perfume')
   }
-  if(req.query.bakhoor){
+  if (req.query.bakhoor) {
     url = url + '&bakhoor=true'
     url2 = url2 + '&bakhoor=true'
-    products = products.filter(item=> item.productType === 'bakhoor')
+    products = products.filter(item => item.productType === 'bakhoor')
   }
-  if(req.query.category){
+  if (req.query.category) {
     url = url + `&category=${req.query.category}`
     url2 = url2 + `&category=${req.query.category}`
     category = req.query.category
-    products = products.filter(item=> item.category === category)
+    products = products.filter(item => item.category === category)
   }
-  if(req.query.smell){
+  if (req.query.smell) {
     url = url + `&smell=${req.query.smell}`
     url2 = url2 + `&smell=${req.query.smell}`
     smell = req.query.smell
-    products = products.filter(item=> item.smell === smell)
+    products = products.filter(item => item.smell === smell)
   }
 
 
   products = products.slice(currentPageSize, currentPageSize + 8)
-  
+
   res.status(200).json({
     success: true,
     products,
@@ -199,7 +212,13 @@ exports.deleteProduct = catchAsyncErrors(async (req, res, next) => {
 
 // Create New Review or Update the review
 exports.createProductReview = catchAsyncErrors(async (req, res, next) => {
-  const { rating, comment, productId, name, email } = req.body;
+  const {
+    rating,
+    comment,
+    productId,
+    name,
+    email
+  } = req.body;
 
   const review = {
     name: name,
@@ -222,7 +241,9 @@ exports.createProductReview = catchAsyncErrors(async (req, res, next) => {
 
   product.ratings = avg / product.reviews.length;
 
-  await product.save({ validateBeforeSave: false });
+  await product.save({
+    validateBeforeSave: false
+  });
 
   res.status(200).json({
     success: true,
@@ -272,13 +293,11 @@ exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
   const numOfReviews = reviews.length;
 
   await Product.findByIdAndUpdate(
-    req.query.productId,
-    {
+    req.query.productId, {
       reviews,
       ratings,
       numOfReviews,
-    },
-    {
+    }, {
       new: true,
       runValidators: true,
       useFindAndModify: false,
