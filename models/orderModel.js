@@ -22,7 +22,7 @@ const orderSchema = new mongoose.Schema({
       required: true,
     },
     pinCode: {
-      type: Number,
+      type: String,
       required: true,
     },
     phoneNo: {
@@ -87,11 +87,7 @@ const orderSchema = new mongoose.Schema({
     required: true,
     default: 0,
   },
-  taxPrice: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
+
   shippingPrice: {
     type: Number,
     required: true,
@@ -106,6 +102,9 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true,
     default: "Processing",
+  },
+  discount: {
+    type: String,
   },
   deliveredAt: Date,
   createdAt: {

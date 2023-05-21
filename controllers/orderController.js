@@ -10,9 +10,10 @@ exports.newOrder = catchAsyncErrors(async (req, res, next) => {
     orderItems,
     paymentInfo,
     itemsPrice,
-    taxPrice,
+
     shippingPrice,
     totalPrice,
+    discount
   } = req.body;
 
   const order = await Order.create({
@@ -20,13 +21,19 @@ exports.newOrder = catchAsyncErrors(async (req, res, next) => {
     orderItems,
     paymentInfo,
     itemsPrice,
-    taxPrice,
     shippingPrice,
     totalPrice,
     paidAt: Date.now(),
     user: req.user._id,
-    name: req.user.name
+    name: req.user.name,
+    discount
   });
+
+  orderItems.map(async (item)=>{
+    let product = await Product.findById(item.product)
+    product.stock = parseInt(product.stock) - parseInt(item.quantity)
+    await Product.findByIdAndUpdate(item.product, product)
+  })
 
   res.status(201).json({
     success: true,
@@ -93,9 +100,7 @@ exports.updateOrder = catchAsyncErrors(async (req, res, next) => {
 
 
   if (req.body.status) {
-    if (order.orderStatus === "Delivered") {
-      return next(new ErrorHander("You have already delivered this order", 400));
-    }
+  
     order.orderStatus = req.body.status;
 
   }
@@ -117,15 +122,6 @@ exports.updateOrder = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-async function updateStock(id, quantity) {
-  const product = await Product.findById(id);
-
-  product.Stock -= quantity;
-
-  await product.save({
-    validateBeforeSave: false
-  });
-}
 
 // delete Order -- Admin
 exports.deleteOrder = catchAsyncErrors(async (req, res, next) => {

@@ -41,6 +41,28 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get All Product
+exports.searchProducts = catchAsyncErrors(async (req, res, next) => {
+
+  let products;
+
+  products = await Product.find();
+
+  const query = req.query.search;
+  // Create copy of item list
+  var updatedList = [...products];
+  // Include all elements which includes the search query
+  updatedList = updatedList.filter((item) => item.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+  // Trigger render with updated values
+  products = updatedList
+
+
+  res.status(200).json({
+    success: true,
+    products,
+
+  });
+});
+// Get All Product
 exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   let currentPageSize = parseInt(req.query.size);
   let category;
@@ -64,39 +86,127 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
     products = await Product.find();
   }
 
-  if(req.query.high){
+  if (req.query.high) {
     url = url + '&high=true'
     url2 = url2 + '&high=true'
     products = await Product.find().sort('-price');
   }
-  if(req.query.low){
+  if (req.query.low) {
     url = url + '&low=true'
     url2 = url2 + '&low=true'
     products = await Product.find().sort('price');
   }
 
-  if (req.query.perfume) {
-    url = url + '&perfume=true'
-    url2 = url2 + '&perfume=true'
-    products = products.filter(item => item.productType === 'perfume')
+  if (req.query.productType) {
+    url = url + `&productType=${req.query.productType}`
+    url2 = url2 + `&productType=${req.query.productType}`
+    products = products.filter(item => item.productType === req.query.productType)
   }
-  if (req.query.bakhoor) {
-    url = url + '&bakhoor=true'
-    url2 = url2 + '&bakhoor=true'
-    products = products.filter(item => item.productType === 'bakhoor')
-  }
-  if (req.query.category) {
-    url = url + `&category=${req.query.category}`
-    url2 = url2 + `&category=${req.query.category}`
+
+  if (req.query.subcategory) {
+    url = url + `&subcategory=${req.query.subcategory}`
+    url2 = url2 + `&subcategory=${req.query.subcategory}`
     category = req.query.category
     products = products.filter(item => item.category === category)
   }
-  if (req.query.smell) {
-    url = url + `&smell=${req.query.smell}`
-    url2 = url2 + `&smell=${req.query.smell}`
-    smell = req.query.smell
-    products = products.filter(item => item.smell === smell)
+
+
+
+  products = products.slice(currentPageSize, currentPageSize + 8)
+
+  res.status(200).json({
+    success: true,
+    products,
+    productsCount,
+    resultPerPage,
+    nextPageUrl: products.length > 7 ? url : null,
+    prevPageUrl: currentPageSize !== 0 ? url2 : null
+
+  });
+});
+
+exports.getAllProductsPost = catchAsyncErrors(async (req, res, next) => {
+
+  let body = req.body
+  let currentPageSize = parseInt(req.query.size);
+
+
+  let url = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize + 8}`
+  let url2 = `${process.env.LOCAL_URI}/api/v1/products?size=${currentPageSize - 8}`
+
+  const resultPerPage = 8;
+  const productsCount = await Product.countDocuments();
+
+  let products;
+
+  if (req.query.new) {
+    url = url + '&new=true'
+    url2 = url2 + '&new=true'
+    products = await Product.find().sort({
+      createdAt: -1
+    });
+  } else {
+    products = await Product.find();
   }
+
+  if (req.query.high) {
+    url = url + '&high=true'
+    url2 = url2 + '&high=true'
+    products = await Product.find().sort('-price');
+  }
+  if (req.query.low) {
+    url = url + '&low=true'
+    url2 = url2 + '&low=true'
+    products = await Product.find().sort('price');
+  }
+
+
+  if (body.category) {
+
+    products = products.filter(item => item.productType === body.category)
+
+  }
+  if (body.subcategory) {
+
+
+    let findtag = (firstArray, secondArray) => {
+      let thirdArray = []
+      // console.log(secondArray)
+      secondArray.map((item) => {
+        let f = firstArray.tags.filter(i => i === item)
+        if (f.length > 0) {
+          thirdArray = [...thirdArray, f[0]]
+        }
+      })
+
+      // console.log(thirdArray)
+      if (thirdArray.length >= secondArray.length) {
+        return firstArray
+      } else {
+        return null
+      }
+    }
+
+    let findProducts = [];
+
+    products.map((item) => {
+      let findAbleProduct = findtag(item, body.subcategory)
+      if (findAbleProduct !== null) {
+        findProducts = [...findProducts, findAbleProduct]
+      }
+    })
+
+    // console.log(findProducts)
+    products = findProducts
+    // const thirdArray = products.filter((elem) => {
+    //   return elem.tags.some((ele) => {
+    //   return ele === elem&& ele.monName === elem.monName;
+    //     });
+    // })
+
+    // products = products.filter(item => item.category === body.subcategory)
+  }
+
 
 
   products = products.slice(currentPageSize, currentPageSize + 8)

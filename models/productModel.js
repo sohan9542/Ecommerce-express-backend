@@ -35,13 +35,7 @@ const productSchema = mongoose.Schema({
     type: String,
     required: [true, "Please Enter Product Type"],
   },
-  category: {
-    type: String,
-  },
-  smell: {
-    type: String,
-    required: [true, "Please Enter Product smell"],
-  },
+  tags: [String],
   stock: {
     type: Number,
     required: [true, "Please Enter product Stock"],
